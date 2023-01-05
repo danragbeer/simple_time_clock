@@ -1,0 +1,185 @@
+<style>
+    .center {
+        margin: auto;
+        width: 25%;
+        background-color: #cecece;
+        padding: 10px;
+    }
+    table {
+        margin-top: 50px;
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+    }
+
+    tr:nth-child(even) {
+        background-color: #dddddd;
+    }
+</style>
+<a href="{% url 'logout' %}">click here to log out!</a>
+
+<div id="greeting">
+    <h1 style="text-align: center;">Hello {{ name }}</h1>
+</div>
+<div id="time" class="center">
+    <div class="timeDisplay">
+        <h2 id="date" style="text-align: center;"></h2>
+        <h2 id="clock" style="text-align:center"></h2>
+        <form id="shift_data_form" action='{% url "shift_actions" %}' method="post">
+            {% csrf_token %}
+            {{ form.employee_id }}
+            {{ form.shift_action_type }}
+            {{ form.time }}
+            {{ form.date }}
+        </form>
+        <button type="button" id="start_shift" onclick=submitForm(this)>Start Shift</button>
+        <button type="button" id="end_shift" onclick=submitForm(this)>End Shift</button>
+        <button type="button" id="start_lunch" onclick=submitForm(this)>Start Lunch</button>
+        <button type="button" id="end_lunch" onclick=submitForm(this)>End Lunch</button>
+        <button type="button" id="start_break" onclick=submitForm(this)>Start Break</button>
+        <button type="button" id="end_break" onclick=submitForm(this)>End Break</button>
+    </div>
+</div>
+<div id="message" style="text-align: center;"></div>
+
+<div id="shift_data_table">
+    <table>
+        <tr>
+        <th>Shift ID</th>
+        <th>Shift Start</th>
+        <th>Shift End</th>
+        <th>Active Shift</th>
+        <th>Lunch Start</th>
+        <th>Lunch End</th>
+        <th>Break Start</th>
+        <th>Break End</th>
+        </tr>
+        
+        {% for shift in shift_data %}
+            <tr>
+                <td>{{ shift.shift_id }}</td>
+                <td>{{ shift.shift_start }}</td>
+                <td>{{ shift.shift_end }}</td>
+                <td>{{ shift.active_shift }}</td>
+                <td>{{ shift.lunch_start }}</td>
+                <td>{{ shift.lunch_end }}</td>
+                <td>{{ shift.break_start }}</td>
+                <td>{{ shift.break_end }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% comment %} Cookie library for making fetch calls {% endcomment %}
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@2/src/js.cookie.min.js"></script>
+
+<script type="text/javascript">
+
+    // The below object helps us convert month int to month string
+    const monthObject = {
+        0: "January",
+        1: "February",
+        2: "March",
+        3: "April",
+        4: "May",
+        5: "June",
+        6: "July",
+        7: "August",
+        8: "September",
+        9: "October",
+        10: "November",
+        11: "December"
+    }
+
+    function currentTime() {
+        let date = new Date(); 
+        // Month comes in as int so we must conver to str
+        let month = monthObject[date.getMonth()];
+        let dayOfTheMonth = date.getDate();
+        let year = date.getFullYear();
+        let hh = date.getHours();
+        let mm = date.getMinutes();
+        let ss = date.getSeconds();
+        let session = "AM";
+
+        // getHours() is 0-23 values so if hh == 0 change to 12
+        if(hh == 0){
+            hh = 12;
+        }
+        // if hour is greater than 12 convert back to 12 hour time
+        if(hh > 12){
+            hh = hh - 12;
+            session = "PM";
+        }
+
+        // below code is used to add leading 0s
+        hh = (hh < 10) ? "0" + hh : hh;
+        mm = (mm < 10) ? "0" + mm : mm;
+        ss = (ss < 10) ? "0" + ss : ss;
+        
+        // create time and full date strings for display
+        let time = hh + ":" + mm + ":" + ss + " " + session;
+        let fullDate = month + " " + dayOfTheMonth + ", " + year
+
+        document.getElementById("date").innerText = fullDate; 
+        document.getElementById("clock").innerText = time; 
+
+        // run this function every second to make it an actual digital clock
+        setTimeout(currentTime, 1000);
+    }
+
+    window.onload = currentTime();
+
+    const encodeForm = (form) => {
+        let formData = new FormData(form),
+            formObject = {};
+        // Below method not async friendly
+        // formData.forEach((value, key) => formObject[key] = value);
+        for (let [key, value] of formData.entries()) {
+            formObject[key] = value;
+        }
+
+        return JSON.stringify(formObject);
+    };
+
+    // Submit form via ajax
+    const submitShiftAction = async (form) => {
+        try {
+            let response = await fetch(`{% url "shift_actions" %}`, {
+                "method": "POST",
+                "headers": {
+                    "X-CSRFToken": Cookies.get("csrftoken"),
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: form
+            });
+            return await response.text();
+        } catch (err) {
+            alert(`Error - ${err}`);
+        }
+    };
+
+    // Main helper function to start the process of submitting the shift data
+    const submitForm = async (button) => {
+        document.getElementById("id_shift_action_type").value = button.id;
+        document.getElementById("id_time").value = document.getElementById("clock").innerHTML;
+        document.getElementById("id_date").value = document.getElementById("date").innerHTML;
+
+        let shiftDataForm = document.getElementById("shift_data_form");
+        let form = encodeForm(shiftDataForm);
+
+        response = await submitShiftAction(form);
+
+        document.getElementById("message").innerHTML = response;
+
+    };
+
+</script>

@@ -56,7 +56,7 @@ Simple Time Clock Application
         4. Create a .env file in the same path as the PipFile and PipFile.lock files and paste
           the following in the .env file. (SQLALCHEMY_URL and DB_URL reflect your databases info):
             DEBUG = False
-            SECRET_KEY = 'django-insecure-nl9hf-&sibl)xh5$oq!as)n@l97%8pz%rz!e*75zygx$hxyu09'
+            SECRET_KEY = "SECRET KEY"
             SQLALCHEMY_URL = 'postgresql://user:password@localhost/db_name'
             DB_URL = 'postgresql://user:password@localhost/db_name'
 
